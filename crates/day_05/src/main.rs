@@ -22,7 +22,7 @@ fn runner() -> Result<()> {
     println!("===== DAY 05 =====");
 
     let input_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(INPUT_FILE);
-    // let input_reader = BufReader::new(File::open(input_path)?);
+
     let raw_input = std::fs::read_to_string(input_path)?;
     let (rules, pages) = parse_input(&raw_input)?;
 
