@@ -1,4 +1,6 @@
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use std::num::ParseIntError;
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -22,10 +24,15 @@ fn runner() -> Result<()> {
     let input_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(INPUT_FILE);
     // let input_reader = BufReader::new(File::open(input_path)?);
     let raw_input = std::fs::read_to_string(input_path)?;
-    let input = parse_input(&raw_input)?;
+    let (rules, pages) = parse_input(&raw_input)?;
 
-    let ans_one = part_one(&input.0, &input.1);
+    let ans_one = part_one(&rules, &pages);
     println!("Part one:\t{}", ans_one);
+
+    let (rules, mut pages) = parse_input_two(&raw_input)?;
+
+    let ans_two = part_two(&rules, &mut pages);
+    println!("Part two:\t{}", ans_two);
 
     Ok(())
 }
@@ -94,6 +101,56 @@ where
         .sum()
 }
 
+fn parse_input_two(raw_input: &str) -> Result<(HashSet<(u8, u8)>, PagesList)> {
+    let (rules, pages) = raw_input
+        .split_once("\n\n")
+        .context("Input not in two sections")?;
+
+    let parsed_rules: HashSet<(u8, u8)> = rules
+        .lines()
+        .map(|line| -> Result<_, ParseIntError> { Ok((line[0..2].parse()?, line[3..].parse()?)) })
+        .collect::<Result<_, _>>()?;
+
+    let parsed_pages = pages
+        .lines()
+        .map(|page_list| {
+            Ok(page_list
+                .split(',')
+                .map(str::parse)
+                .collect::<Result<_, _>>()?)
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok((parsed_rules, parsed_pages))
+}
+
+fn part_two<O, I>(rules: &HashSet<(u8, u8)>, pages: O) -> usize
+where
+    O: IntoIterator<Item = I>,
+    I: AsMut<[u8]>,
+{
+    let cmp = |a: u8, b: u8| {
+        if rules.contains(&(a, b)) {
+            Ordering::Less
+        } else if rules.contains(&(b, a)) {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    };
+
+    pages
+        .into_iter()
+        .filter_map(|mut page| {
+            let page = page.as_mut();
+            (!page.is_sorted_by(|a, b| Ordering::Greater != cmp(*a, *b))).then(|| {
+                page.sort_by(|a, b| cmp(*a, *b));
+                page[page.len() / 2] as usize
+            })
+        })
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -134,6 +191,16 @@ mod tests {
         let input = parse_input(INPUT).unwrap();
 
         let actual = part_one(&input.0, &input.1);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let expected = 123;
+
+        let mut input = parse_input_two(INPUT).unwrap();
+
+        let actual = part_two(&input.0, &mut input.1);
         assert_eq!(expected, actual);
     }
 }
