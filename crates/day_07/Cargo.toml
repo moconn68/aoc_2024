@@ -1,0 +1,12 @@
+[package]
+name = "day_07"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+itertools = "0.14.0"
+strum = { version = "0.26", features = ["derive"] }
+
+[dev-dependencies]
+rstest = "0.23.0"
