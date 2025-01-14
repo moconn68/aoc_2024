@@ -1,6 +1,6 @@
 mod math;
 
-use crate::math::{Expression, Operator};
+use crate::math::{Expression, Op, Op2, Operator, Ordering};
 
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -25,8 +25,11 @@ fn runner() -> Result<()> {
     let input_reader = BufReader::new(File::open(&input_path)?);
     let input = parse_input(input_reader)?;
 
-    let ans_one = part_one(input)?;
+    let ans_one = solve::<Op, _>(input.clone())?;
     println!("Part one:\t{}", ans_one);
+
+    let ans_two = solve::<Op2, _>(input)?;
+    println!("Part two:\t{}", ans_two);
 
     Ok(())
 }
@@ -50,10 +53,14 @@ fn parse_input(input_reader: impl BufRead) -> Result<Vec<InputLine>> {
         .collect()
 }
 
-fn part_one(input: impl IntoIterator<Item = InputLine>) -> Result<usize> {
+fn solve<Op, Input>(input: Input) -> Result<usize>
+where
+    Op: Operator + Ordering,
+    Input: IntoIterator<Item = InputLine>,
+{
     let mut sum = 0;
     for (target_value, nums) in input {
-        let op_combos = Operator::generate_orderings(nums.len() - 1);
+        let op_combos = Op::orderings(nums.len() - 1);
 
         let mut matched = false;
         for ops in op_combos {
@@ -92,7 +99,17 @@ mod tests {
 
         let input = parse_input(TEST_INPUT.as_bytes()).unwrap();
 
-        let actual = part_one(input).unwrap();
+        let actual = solve::<Op, _>(input).unwrap();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_part_two() {
+        let expected = 11387;
+
+        let input = parse_input(TEST_INPUT.as_bytes()).unwrap();
+
+        let actual = solve::<Op2, _>(input).unwrap();
         assert_eq!(expected, actual);
     }
 }
